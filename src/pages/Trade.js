@@ -135,3 +135,75 @@ const Trade = () => {
 };
 
 export default Trade;
+import React, { useState, useEffect } from "react";
+import {
+  initializeAutoStake,
+  runAutoStakeCycle,
+  getStakeState,
+} from "../utils/autoStakeEngine";
+
+const Trade = () => {
+  const [formData, setFormData] = useState({
+    initialInvestment: 1000,
+    assetType: "crypto",
+    numberOfAssets: 3,
+    durationDays: 7,
+    cashOutPercentage: 100,
+    autoSellGain: 10,
+    autoSellLoss: 3,
+    percentagePerAsset: 10,
+  });
+
+  const [isRunning, setIsRunning] = useState(false);
+  const [stakeSnapshot, setStakeSnapshot] = useState(null);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: Number.isNaN(Number(value)) ? value : Number(value),
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    initializeAutoStake(formData);
+    setIsRunning(true);
+  };
+
+  useEffect(() => {
+    if (!isRunning) return;
+
+    const interval = setInterval(() => {
+      runAutoStakeCycle();
+      setStakeSnapshot({ ...getStakeState() });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isRunning]);
+
+  return (
+    <div className="p-6">
+      {/* Existing form goes here */}
+
+      {stakeSnapshot && (
+        <div className="mt-8 bg-white p-4 rounded shadow">
+          <h2 className="text-xl font-semibold mb-2">Auto Stake Summary</h2>
+          <p>💼 Mock Balance: £{stakeSnapshot.balance.toFixed(2)}</p>
+          <p>🏦 Banked Profit: £{stakeSnapshot.bankedProfit.toFixed(2)}</p>
+          <p className="mt-2 font-medium">📈 Active Assets:</p>
+          <ul className="list-disc ml-6">
+            {stakeSnapshot.investedAssets.map((asset, idx) => (
+              <li key={idx}>
+                {asset.symbol} — {asset.amount.toFixed(4)} units @ £
+                {asset.purchasePrice}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Trade;
