@@ -135,7 +135,6 @@ const Trade = () => {
 };
 
 export default Trade;
-import React, { useState, useEffect } from "react";
 import {
   initializeAutoStake,
   runAutoStakeCycle,
