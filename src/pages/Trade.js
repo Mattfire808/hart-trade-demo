@@ -1,3 +1,6 @@
+import useAutoStakeRunner from "../hooks/useAutoStakeRunner";
+import { getStakeState } from "../utils/autoStakeEngine";
+
 import React, { useState } from 'react';
 
 const Trade = () => {
@@ -168,6 +171,9 @@ const Trade = () => {
     e.preventDefault();
     initializeAutoStake(formData);
     setIsRunning(true);
+	initializeAutoStake(settings);
+setIsRunning(true);
+
   };
 
   useEffect(() => {
@@ -204,5 +210,12 @@ const Trade = () => {
     </div>
   );
 };
-
+const [isRunning, setIsRunning] = useState(false);
+useAutoStakeRunner(isRunning, 10000); // 10-second interval
+<div className="mt-6 bg-white p-4 rounded shadow">
+  <h2 className="text-xl font-bold mb-2">📊 Auto Stake Live Status</h2>
+  <p><strong>Balance:</strong> £{getStakeState().balance.toFixed(2)}</p>
+  <p><strong>Banked Profit:</strong> £{getStakeState().bankedProfit.toFixed(2)}</p>
+  <p><strong>Active Assets:</strong> {getStakeState().investedAssets.length}</p>
+</div>
 export default Trade;
