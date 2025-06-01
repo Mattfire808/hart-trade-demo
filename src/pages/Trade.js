@@ -1,156 +1,27 @@
-import useAutoStakeRunner from "../hooks/useAutoStakeRunner";
-import { getStakeState } from "../utils/autoStakeEngine";
-
-import React, { useState } from 'react';
-
-const Trade = () => {
-  const [mockBalance, setMockBalance] = useState(1000);
-  const [stakeAmount, setStakeAmount] = useState('');
-  const [stakeType, setStakeType] = useState('crypto');
-  const [assetCount, setAssetCount] = useState(1);
-  const [duration, setDuration] = useState('7');
-  const [cashOutPercent, setCashOutPercent] = useState(100);
-  const [profitTrigger, setProfitTrigger] = useState(10);
-  const [lossTrigger, setLossTrigger] = useState(3);
-  const [individualStakePercent, setIndividualStakePercent] = useState(10);
-
-  const handleStartAutoStake = () => {
-    const config = {
-      stakeAmount,
-      stakeType,
-      assetCount,
-      duration,
-      cashOutPercent,
-      profitTrigger,
-      lossTrigger,
-      individualStakePercent,
-    };
-
-    localStorage.setItem('autoStakeConfig', JSON.stringify(config));
-    alert('Auto Stake configuration saved.');
-  };
-
-  return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Trade - Auto Stake</h1>
-
-      <div className="mb-4">
-        <label className="block mb-1">Mock Balance: £{mockBalance}</label>
-      </div>
-
-      <div className="mb-4">
-        <label className="block mb-1">Stake Amount (£)</label>
-        <input
-          type="number"
-          className="w-full p-2 border rounded"
-          value={stakeAmount}
-          onChange={(e) => setStakeAmount(e.target.value)}
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block mb-1">Stake Type</label>
-        <select
-          className="w-full p-2 border rounded"
-          value={stakeType}
-          onChange={(e) => setStakeType(e.target.value)}
-        >
-          <option value="crypto">Crypto</option>
-          <option value="stocks">Stocks</option>
-          <option value="both">Both</option>
-        </select>
-      </div>
-
-      <div className="mb-4">
-        <label className="block mb-1">Number of Assets to Stake In</label>
-        <input
-          type="number"
-          className="w-full p-2 border rounded"
-          value={assetCount}
-          onChange={(e) => setAssetCount(e.target.value)}
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block mb-1">Stake Duration (days)</label>
-        <select
-          className="w-full p-2 border rounded"
-          value={duration}
-          onChange={(e) => setDuration(e.target.value)}
-        >
-          <option value="1">1</option>
-          <option value="7">7</option>
-          <option value="30">30</option>
-          <option value="90">90</option>
-        </select>
-      </div>
-
-      <div className="mb-4">
-        <label className="block mb-1">Cash Out % at End of Stake</label>
-        <input
-          type="number"
-          className="w-full p-2 border rounded"
-          value={cashOutPercent}
-          onChange={(e) => setCashOutPercent(e.target.value)}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div>
-          <label className="block mb-1">Profit Trigger (%)</label>
-          <input
-            type="number"
-            className="w-full p-2 border rounded"
-            value={profitTrigger}
-            onChange={(e) => setProfitTrigger(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="block mb-1">Loss Trigger (%)</label>
-          <input
-            type="number"
-            className="w-full p-2 border rounded"
-            value={lossTrigger}
-            onChange={(e) => setLossTrigger(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <label className="block mb-1">Individual Stake % per Asset</label>
-        <input
-          type="number"
-          className="w-full p-2 border rounded"
-          value={individualStakePercent}
-          onChange={(e) => setIndividualStakePercent(e.target.value)}
-        />
-      </div>
-
-      <button
-        onClick={handleStartAutoStake}
-        className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-      >
-        Start Auto Stake
-      </button>
-    </div>
-  );
-};
-
-export default Trade;
+import React, { useState, useEffect } from "react";
 import {
   initializeAutoStake,
   runAutoStakeCycle,
   getStakeState,
 } from "../utils/autoStakeEngine";
 
+const useAutoStakeRunner = (isRunning, interval = 10000) => {
+  useEffect(() => {
+    if (!isRunning) return;
+
+    const execute = () => runAutoStakeCycle();
+    const id = setInterval(execute, interval);
+    return () => clearInterval(id);
+  }, [isRunning, interval]);
+};
+
 const Trade = () => {
   const [formData, setFormData] = useState({
     initialInvestment: 1000,
     assetType: "crypto",
     numberOfAssets: 3,
-    durationDays: 7,
-    cashOutPercentage: 100,
+    duration: 7,
+    cashOutPercent: 100,
     autoSellGain: 10,
     autoSellLoss: 3,
     percentagePerAsset: 10,
@@ -159,37 +30,129 @@ const Trade = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [stakeSnapshot, setStakeSnapshot] = useState(null);
 
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: Number.isNaN(Number(value)) ? value : Number(value),
+      [name]: name.includes("number") || name.includes("Percent")
+        ? parseFloat(value)
+        : value,
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleStart = () => {
     initializeAutoStake(formData);
     setIsRunning(true);
-	initializeAutoStake(settings);
-setIsRunning(true);
-
   };
 
+  useAutoStakeRunner(isRunning, 10000);
+
   useEffect(() => {
-    if (!isRunning) return;
-
-    const interval = setInterval(() => {
-      runAutoStakeCycle();
-      setStakeSnapshot({ ...getStakeState() });
-    }, 5000);
-
-    return () => clearInterval(interval);
+    if (isRunning) {
+      const interval = setInterval(() => {
+        setStakeSnapshot({ ...getStakeState() });
+      }, 5000);
+      return () => clearInterval(interval);
+    }
   }, [isRunning]);
+
+  const stakeState = getStakeState();
 
   return (
     <div className="p-6">
-      {/* Existing form goes here */}
+      <h1 className="text-2xl font-bold mb-4">Auto Stake Settings</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded shadow">
+        <label>
+          💷 Initial Investment (£)
+          <input
+            type="number"
+            name="initialInvestment"
+            value={formData.initialInvestment}
+            onChange={handleInputChange}
+            className="w-full mt-1 border rounded p-2"
+          />
+        </label>
+        <label>
+          🗂️ Asset Type
+          <select
+            name="assetType"
+            value={formData.assetType}
+            onChange={handleInputChange}
+            className="w-full mt-1 border rounded p-2"
+          >
+            <option value="crypto">Crypto</option>
+            <option value="stocks">Stocks</option>
+            <option value="both">Both</option>
+          </select>
+        </label>
+        <label>
+          🔢 Number of Assets
+          <input
+            type="number"
+            name="numberOfAssets"
+            value={formData.numberOfAssets}
+            onChange={handleInputChange}
+            className="w-full mt-1 border rounded p-2"
+          />
+        </label>
+        <label>
+          🕒 Duration (days)
+          <input
+            type="number"
+            name="duration"
+            value={formData.duration}
+            onChange={handleInputChange}
+            className="w-full mt-1 border rounded p-2"
+          />
+        </label>
+        <label>
+          💸 Cash Out at % of Stake
+          <input
+            type="number"
+            name="cashOutPercent"
+            value={formData.cashOutPercent}
+            onChange={handleInputChange}
+            className="w-full mt-1 border rounded p-2"
+          />
+        </label>
+        <label>
+          📈 Auto-Sell Gain Threshold (%)
+          <input
+            type="number"
+            name="autoSellGain"
+            value={formData.autoSellGain}
+            onChange={handleInputChange}
+            className="w-full mt-1 border rounded p-2"
+          />
+        </label>
+        <label>
+          📉 Auto-Sell Loss Threshold (%)
+          <input
+            type="number"
+            name="autoSellLoss"
+            value={formData.autoSellLoss}
+            onChange={handleInputChange}
+            className="w-full mt-1 border rounded p-2"
+          />
+        </label>
+        <label>
+          🧮 % Stake per Asset
+          <input
+            type="number"
+            name="percentagePerAsset"
+            value={formData.percentagePerAsset}
+            onChange={handleInputChange}
+            className="w-full mt-1 border rounded p-2"
+          />
+        </label>
+      </div>
+
+      <button
+        onClick={handleStart}
+        className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+      >
+        Start Auto Stake
+      </button>
 
       {stakeSnapshot && (
         <div className="mt-8 bg-white p-4 rounded shadow">
@@ -207,15 +170,21 @@ setIsRunning(true);
           </ul>
         </div>
       )}
+
+      <div className="mt-6 bg-white p-4 rounded shadow">
+        <h2 className="text-xl font-bold mb-2">📊 Auto Stake Live Status</h2>
+        <p>
+          <strong>Balance:</strong> £{stakeState.balance.toFixed(2)}
+        </p>
+        <p>
+          <strong>Banked Profit:</strong> £{stakeState.bankedProfit.toFixed(2)}
+        </p>
+        <p>
+          <strong>Active Assets:</strong> {stakeState.investedAssets.length}
+        </p>
+      </div>
     </div>
   );
 };
-const [isRunning, setIsRunning] = useState(false);
-useAutoStakeRunner(isRunning, 10000); // 10-second interval
-<div className="mt-6 bg-white p-4 rounded shadow">
-  <h2 className="text-xl font-bold mb-2">📊 Auto Stake Live Status</h2>
-  <p><strong>Balance:</strong> £{getStakeState().balance.toFixed(2)}</p>
-  <p><strong>Banked Profit:</strong> £{getStakeState().bankedProfit.toFixed(2)}</p>
-  <p><strong>Active Assets:</strong> {getStakeState().investedAssets.length}</p>
-</div>
+
 export default Trade;
